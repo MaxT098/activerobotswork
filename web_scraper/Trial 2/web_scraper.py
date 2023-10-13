@@ -1,10 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 import openpyxl
-from openpyxl.drawing.image import Image
 import os
 
-# Function to scrape product information (product name and GTIN code) and extract the image using XPath
+# Function to scrape product information (product name and GTIN code)
 def scrape_product_info(url, worksheet, current_row=2, current_depth=0):
     if current_depth > max_depth:
         return current_row
@@ -25,20 +24,6 @@ def scrape_product_info(url, worksheet, current_row=2, current_depth=0):
             gtin_code = gtin_code_element.text.strip()
             worksheet[f'B{current_row}'] = gtin_code
 
-        # Locate and extract the image using XPath
-        image_element = soup.find('img', {'xpath': '/html/body/main/div/div[2]/div[1]/div[2]/form/div/div[1]/div/div[1]/div[2]/div[2]/div/div/div/div[1]/div/div/div/picture/img'})
-        if image_element:
-            image_url = image_element['src']
-
-            # Download and insert the image
-            filename = f'image_{current_row - 2}.jpg'
-            filepath = os.path.join(download_folder, filename)
-            response = requests.get(image_url, stream=True)
-            with open(filepath, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            worksheet[f'C{current_row}'] = Image(filepath)
-
     # Find links to subpages and recursively scrape them
     response = requests.get(url)
     if response.status_code == 200:
@@ -53,12 +38,9 @@ def scrape_product_info(url, worksheet, current_row=2, current_depth=0):
 
     return current_row
 
-if __name__ == "__main":
-    initial_url = 'https://www.nodna.de/Robots-Vehicles'
+if __name__ == "__main__":
+    initial_url = 'https://www.nodna.de/Robot-Arms-Grippers'
     max_depth = 3  # Set the maximum depth for subpage exploration
-
-    download_folder = 'downloaded_product_images'
-    os.makedirs(download_folder, exist_ok=True)
 
     workbook = openpyxl.Workbook()
     worksheet = workbook.active
@@ -66,7 +48,6 @@ if __name__ == "__main":
 
     worksheet['A1'] = 'Product Name'
     worksheet['B1'] = 'GTIN Code'
-    worksheet['C1'] = 'Image'
 
     # Perform the recursive search for product information
     final_row = scrape_product_info(initial_url, worksheet)
@@ -74,4 +55,4 @@ if __name__ == "__main":
     # Save the Excel workbook
     excel_file_path = 'product_data.xlsx'
     workbook.save(excel_file_path)
-    print(f"Data and images saved to '{excel_file_path}'.")
+    print(f"Data saved to '{excel_file_path}'.")
